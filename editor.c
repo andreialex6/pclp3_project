@@ -399,10 +399,101 @@ void setup_menubar(void) {
                              (GCallback) gtk_main_quit, NULL);
 }
 
+// Apelata cand se modifica textul
+void gtk_notepad_text_changed(void) {
+    modified = TRUE;
+    // gtk_statusbar_update_lncol();
+}
+
+// Functie pentru toggle wrapping
+// Wrapping se refera la inceperea unui nou rand
+// cand se ajunge la capatul ferestrei
+void gtk_text_view_toggle_wrapping(void) {
+    GtkWrapMode mode;
+    if (wrapping)
+        mode = GTK_WRAP_NONE;
+    else
+        mode = GTK_WRAP_CHAR;
+
+    wrapping = !wrapping;
+
+    // Seteaza modul de wrapping
+    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(textarea),
+                                mode);
+}
+
+// Initializare textarea
+void setup_textarea(void) {
+    // Initializare fereastra de scroll
+    scrolledwindow = gtk_scrolled_window_new(NULL, NULL);
+    
+    // Modifica setarile pentru scroll
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(
+                                   scrolledwindow),
+                                   GTK_POLICY_AUTOMATIC,
+                                   GTK_POLICY_AUTOMATIC);
+
+    // Initializare textarea
+    textarea = gtk_text_view_new();
+
+    // Adaugam textarea in fereastra de scroll
+    gtk_container_add(GTK_CONTAINER(scrolledwindow), textarea);
+
+    // Adaugam fereastra de scroll in fereastra principala
+    gtk_box_pack_start(GTK_BOX(vbox),
+                       scrolledwindow, TRUE, TRUE, 0);
+
+    // Initializare buffer
+    buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textarea));
+
+    // Signal handlers
+    // Asculta pentru schimbarea textului
+    g_signal_connect(buffer, "changed",
+                     (GCallback) gtk_notepad_text_changed, NULL);
+    // g_signal_connect(buffer, "mark_set",
+                    //  (GCallback) gtk_statusbar_update_lncol, NULL);
+
+    // Wrapping 
+    gtk_text_view_toggle_wrapping();
+}
+
+
 int main(int argc, char* argv[]) {
     // Numele programului
     PROGNAME = argv[0];
 
+    // Numele fisierului incarcat
+    loaded_fn = malloc(1);
+    loaded_fn[0] = '\0';
+
+    // Daca a fost dat un argument, atunci incarca fisierul
+    if (argc == 2) {
+        // Deschide fisierul
+        FILE *temp = fopen(argv[1], "rb");
+
+        // Daca nu s-a putut deschide, afiseaza eroarea
+        if (!temp) {
+            fprintf(stderr, "%s: failed to open file: %s\n",
+                    PROGNAME,
+                    strerror(errno));
+            return EXIT_FAILURE;
+        }
+
+        // Inchide fisierul
+        fclose(temp);
+
+        // Elibereaza memoria
+        free(loaded_fn);
+
+        // Copiaza numele fisierului
+        loaded_fn = malloc(strlen(argv[1]));
+        strcpy(loaded_fn, argv[1]);
+    }
+    else if (argc > 2) {
+        return EXIT_FAILURE;
+    }
+
+    // Initializare GTK
     gtk_init(&argc, &argv);
 
     // Titlul ferestrei curente
@@ -425,6 +516,9 @@ int main(int argc, char* argv[]) {
     // Muta fereastra pe centru
     gtk_window_set_position(gwindow, GTK_WIN_POS_CENTER);
 
+    // Afisam iconita aplicatiei
+    gtk_window_set_icon(gwindow, create_pixbuf("./icon.png"));
+
     vbox = gtk_vbox_new(FALSE, 0);
     gtk_container_add(GTK_CONTAINER(window), vbox);
 
@@ -432,7 +526,14 @@ int main(int argc, char* argv[]) {
     accel = gtk_accel_group_new();
     gtk_window_add_accel_group(gwindow, accel);
 
+    // Initializare menubar
     setup_menubar();
+
+    // Initializare textarea
+    setup_textarea();
+
+    if (argc == 2)
+        gtk_notepad_open_file(loaded_fn);
 
     // Signal handler pentru inchiderea ferestrei
     g_signal_connect(window, "destroy",
@@ -440,9 +541,6 @@ int main(int argc, char* argv[]) {
 
     // Afisam toate widget-urile din fereastra
     gtk_widget_show_all(window);
-
-    // Afisam iconita aplicatiei
-    gtk_window_set_icon(gwindow, create_pixbuf("./icon.png"));
 
     // Incepem bucla principala de evenimente
     gtk_main();
