@@ -4,12 +4,116 @@
 #include <stdlib.h>
 #include "editor.h"
 
+// Widget pentru SearchBar
+typedef struct _SearchBar
+{
+    GtkWidget *search_entry;
+    GtkWidget *sbutton;
+    GtkWidget *nbutton;
+    GtkWidget *qbutton;
+    GtkWidget *text_view;
+} SearchBar;
+
+// Functie care cauta un cuvant in buffer
+void find(GtkTextView *text_view, const gchar *text, GtkTextIter *iter)
+{
+    // Inceputul si sfarsitul cuvantului
+    GtkTextIter mstart, mend;
+
+    gboolean found; // gasit sau nu
+    GtkTextBuffer *buffer; // buffer
+    GtkTextMark *last_pos; // ultima pozitie
+
+    // Obtinem bufferul
+    buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(text_view));
+    
+    // Caută textul înainte de poziția specificată de iter
+    found = gtk_text_iter_forward_search(iter, text, 0, &mstart, &mend, NULL);
+
+    // Daca l-am gasit
+    if (found)
+    {
+        // Selectam cuvantul
+        gtk_text_buffer_select_range(buffer, &mstart, &mend);
+
+        // Creeaza o marca numita "last_pos" la sfarsitul intervalului gasit
+        last_pos = gtk_text_buffer_create_mark(buffer, "last_pos",
+                                               &mend, FALSE);
+        // Deruleaza GtkTextView astfel incat marca "last_pos" s fie vizibila pe ecran
+        gtk_text_view_scroll_mark_onscreen(text_view, last_pos);
+    }
+}
+
+// Afiseaza SearchBar
+void find_menu_selected(GtkWidget *widget, SearchBar *sbar)
+{
+    gtk_widget_show(sbar->search_entry);
+    gtk_widget_show(sbar->sbutton);
+    gtk_widget_show(sbar->nbutton);
+    gtk_widget_show(sbar->qbutton);
+}
+
+// Ascunde SearchBar
+void close_button_clicked (GtkWidget *close_button, SearchBar *sbar)
+{
+  gtk_widget_hide(sbar->search_entry);
+  gtk_widget_hide(sbar->sbutton);
+  gtk_widget_hide(sbar->nbutton);
+  gtk_widget_hide(sbar->qbutton);
+}
+
+// Cauta cuvantul in buffer
+void search_button_clicked(GtkWidget *search_button, SearchBar *sbar)
+{
+    const gchar *text;
+    GtkTextBuffer *buffer;
+    GtkTextIter iter;
+
+    // Obtine textul din campul de cautare
+    text = gtk_entry_get_text(GTK_ENTRY(sbar->search_entry));
+
+    // Obtine bufferul
+    buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(sbar->text_view));
+    gtk_text_buffer_get_start_iter(buffer, &iter);
+
+    // Cauta cuvantul
+    find(GTK_TEXT_VIEW(sbar->text_view), text, &iter);
+}
+
+// Cauta urmatorul cuvant
+void next_button_clicked(GtkWidget *next_button, SearchBar *sbar)
+{
+    const gchar *text;
+    GtkTextBuffer *buffer;
+    GtkTextMark *last_pos;
+    GtkTextIter iter;
+
+    // Obtine textul din campul de cautare
+    text = gtk_entry_get_text(GTK_ENTRY(sbar->search_entry));
+
+    // Obtine bufferul
+    buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(sbar->text_view));
+
+    // Obtine ultima pozitie
+    last_pos = gtk_text_buffer_get_mark(buffer, "last_pos");
+    if (last_pos == NULL)
+        return;
+
+    // Obtine iter
+    gtk_text_buffer_get_iter_at_mark(buffer, &iter, last_pos);
+
+    // Cauta cuvantul
+    find(GTK_TEXT_VIEW(sbar->text_view), text, &iter);
+}
+
 // Cream iconita aplicatiei
-GdkPixbuf *create_pixbuf(const char *filename) {
+GdkPixbuf *create_pixbuf(const char *filename)
+{
     GdkPixbuf *pixbuf;
     GError *error = NULL;
     pixbuf = gdk_pixbuf_new_from_file(filename, &error);
-    if (!pixbuf) {
+    if (!pixbuf)
+    {
         fprintf(stderr, "%s: %s\n",
                 PROGNAME,
                 error->message);
@@ -20,7 +124,8 @@ GdkPixbuf *create_pixbuf(const char *filename) {
 }
 
 // Seteaza titlul ferestrei
-void gtk_notepad_set_title(const char* filename) {
+void gtk_notepad_set_title(const char *filename)
+{
     // Copiem numele fisierului
     char *fn = malloc(strlen(filename) + 1);
     strcpy(fn, filename);
@@ -30,12 +135,14 @@ void gtk_notepad_set_title(const char* filename) {
 
     // Cautam ultimul slash din numele fisierului
     char *slash = strrchr(filename, '/');
-    if (slash) {
+    if (slash)
+    {
         // Daca exista, atunci calculam indexul
         index = (int)(slash - filename);
 
         // Stergem tot ce e inainte de slash
-        for (i=0; i <= index; i++, fn++);
+        for (i = 0; i <= index; i++, fn++)
+            ;
     }
 
     // Alocam memorie pentru titlu
@@ -46,7 +153,8 @@ void gtk_notepad_set_title(const char* filename) {
 
     // Adaugam " - Editor" la final
     if (slash)
-        for (i=0; i <= index; i++, fn--);
+        for (i = 0; i <= index; i++, fn--)
+            ;
 
     strcat(_title, " - Editor");
 
@@ -59,23 +167,24 @@ void gtk_notepad_set_title(const char* filename) {
 }
 
 // Fereastra de dialog pentru confirmare salvare
-int gtk_notepad_ask_save_cancel(void) {
+int gtk_notepad_ask_save_cancel(void)
+{
     GtkWidget *dialog;
 
     // Creaza fereastra de dialog
     dialog = gtk_message_dialog_new(gwindow,
-                GTK_DIALOG_DESTROY_WITH_PARENT,
-                GTK_MESSAGE_QUESTION,
-                GTK_BUTTONS_YES_NO,
-                "Fisierul a fost modificat. Doriti sa il salvati din nou?");
+                                    GTK_DIALOG_DESTROY_WITH_PARENT,
+                                    GTK_MESSAGE_QUESTION,
+                                    GTK_BUTTONS_YES_NO,
+                                    "Fisierul a fost modificat. Doriti sa il salvati din nou?");
 
     // Adauga butoanele
     gtk_dialog_add_button(GTK_DIALOG(dialog),
                           "Anuleaza", GTK_RESPONSE_CANCEL);
-    
+
     // Seteaza titlul ferestrei
     gtk_window_set_title(GTK_WINDOW(dialog), "Fisierul a fost modificat");
-    
+
     // Deschide fereastra de dialog
     int response = gtk_dialog_run(GTK_DIALOG(dialog));
 
@@ -86,9 +195,9 @@ int gtk_notepad_ask_save_cancel(void) {
     return response;
 }
 
-
 // Creeaza un fisier nou
-void gtk_notepad_new(void) {
+void gtk_notepad_new(void)
+{
     free(loaded_fn);
     loaded_fn = malloc(1);
     loaded_fn[0] = '\0';
@@ -101,12 +210,14 @@ void gtk_notepad_new(void) {
 }
 
 // Deschide un fisier
-char gtk_notepad_open_file(const char* filename) {
+char gtk_notepad_open_file(const char *filename)
+{
     // Deschide fisierul
     FILE *fp = fopen(filename, "rb");
 
     // Daca nu s-a putut deschide, afiseaza eroarea
-    if (!fp) {
+    if (!fp)
+    {
         fprintf(stderr, "%s: fopen(null): %s\n",
                 PROGNAME,
                 strerror(errno));
@@ -114,14 +225,15 @@ char gtk_notepad_open_file(const char* filename) {
 
         return 0;
     }
-    else {
+    else
+    {
         // Variabila pentru citirea fisierului
-        char* buf;
-        
+        char *buf;
+
         // Mutam cursorul la finalul fisierului
         fseek(fp, 0, SEEK_END);
-        
-        // Aflam dimensiunea fisierului 
+
+        // Aflam dimensiunea fisierului
         long fsize = ftell(fp);
 
         // Mutam cursorul la inceputul fisierului
@@ -153,25 +265,28 @@ char gtk_notepad_open_file(const char* filename) {
     return 1;
 }
 
-
 // Deschide un fisier
-void gtk_notepad_open(void) {
+void gtk_notepad_open(void)
+{
     // Daca fisierul a fost modificat, intreaba daca vrea sa salveze
-    if (modified == TRUE) {
+    if (modified == TRUE)
+    {
         int response = gtk_notepad_ask_save_cancel();
-        switch (response) {
-            case GTK_RESPONSE_YES:
-                gtk_notepad_save();
-                break;
-            case GTK_RESPONSE_NO:
-                break;
-            case GTK_RESPONSE_DELETE_EVENT: case GTK_RESPONSE_CANCEL:
-                return;
-                break;
+        switch (response)
+        {
+        case GTK_RESPONSE_YES:
+            gtk_notepad_save();
+            break;
+        case GTK_RESPONSE_NO:
+            break;
+        case GTK_RESPONSE_DELETE_EVENT:
+        case GTK_RESPONSE_CANCEL:
+            return;
+            break;
 
-            default:
-                return;
-                break;
+        default:
+            return;
+            break;
         }
     }
 
@@ -180,7 +295,7 @@ void gtk_notepad_open(void) {
 
     // Tipul ferestrei de dialog
     GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
-    
+
     int res;
 
     // Creeaza fereastra de dialog
@@ -198,14 +313,16 @@ void gtk_notepad_open(void) {
 
     // Daca a fost apasat butonul de deschidere
     // atunci deschide fisierul
-    char* filename;
-    if (res == GTK_RESPONSE_ACCEPT) {
+    char *filename;
+    if (res == GTK_RESPONSE_ACCEPT)
+    {
         // Extrage numele fisierului
         filename = gtk_file_chooser_get_filename(
-                        GTK_FILE_CHOOSER(dialog));
-        
+            GTK_FILE_CHOOSER(dialog));
+
         // Deschide fisierul
-        if (gtk_notepad_open_file(filename)) {
+        if (gtk_notepad_open_file(filename))
+        {
             free(loaded_fn);
             loaded_fn = malloc(strlen(filename) + 1);
             strcpy(loaded_fn, filename);
@@ -219,27 +336,29 @@ void gtk_notepad_open(void) {
     gtk_widget_destroy(dialog);
 }
 
-
 // Salveaza fisierul
-char gtk_notepad_save_file(const char* filename) {
+char gtk_notepad_save_file(const char *filename)
+{
     // Deschide fisierul
     FILE *fp = fopen(filename, "wb");
 
     // Daca nu s-a putut deschide, afiseaza eroarea
-    if (!fp) {
+    if (!fp)
+    {
         fprintf(stderr, "%s: fopen(null): %s\n",
                 PROGNAME,
                 strerror(errno));
         fclose(fp);
         return 0;
     }
-    else {
+    else
+    {
         GtkTextIter start, end;
         gtk_text_buffer_get_start_iter(buffer, &start);
         gtk_text_buffer_get_end_iter(buffer, &end);
 
         // Extrage textul din buffer
-        char* buf = gtk_text_buffer_get_text(buffer,
+        char *buf = gtk_text_buffer_get_text(buffer,
                                              &start,
                                              &end,
                                              TRUE);
@@ -261,9 +380,9 @@ char gtk_notepad_save_file(const char* filename) {
     return 1;
 }
 
-
 // Salveaza fisierul curent
-void gtk_notepad_save(void) {
+void gtk_notepad_save(void)
+{
     // Daca niciun fisier nu a fost incarcat, atunci
     // deschide fereastra de dialog pentru salvare
     if (NO_FILE_LOADED)
@@ -272,9 +391,9 @@ void gtk_notepad_save(void) {
         gtk_notepad_save_file(loaded_fn);
 }
 
-
 // Salveaza fisierul curent cu alt nume
-void gtk_notepad_saveas(void) {
+void gtk_notepad_saveas(void)
+{
     GtkWidget *dialog;
     GtkFileChooser *chooser;
     GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_SAVE;
@@ -302,15 +421,16 @@ void gtk_notepad_saveas(void) {
     // Obtine raspunsul din fereastra de dialog
     res = gtk_dialog_run(GTK_DIALOG(dialog));
 
-    
-    char* filename;
-    if (res == GTK_RESPONSE_ACCEPT) {
+    char *filename;
+    if (res == GTK_RESPONSE_ACCEPT)
+    {
         // Extrage numele fisierului
         filename = gtk_file_chooser_get_filename(
-                        GTK_FILE_CHOOSER(dialog));
+            GTK_FILE_CHOOSER(dialog));
 
         // Salveaza fisierul
-        if (gtk_notepad_save_file(filename)) {
+        if (gtk_notepad_save_file(filename))
+        {
             free(loaded_fn);
             loaded_fn = malloc(strlen(filename) + 1);
             strcpy(loaded_fn, filename);
@@ -324,9 +444,9 @@ void gtk_notepad_saveas(void) {
     gtk_widget_destroy(dialog);
 }
 
-
 // Menubar (bara de sus)
-void setup_menubar(void) {
+void setup_menubar(void)
+{
     // Initializare menubar
     menubar = gtk_menu_bar_new();
 
@@ -335,7 +455,7 @@ void setup_menubar(void) {
 
     // Initializare iteme
     file = gtk_menu_item_new_with_mnemonic("_File");
-    new  = gtk_menu_item_new_with_mnemonic("_New");
+    new = gtk_menu_item_new_with_mnemonic("_New");
     open = gtk_menu_item_new_with_mnemonic("_Open");
     save = gtk_menu_item_new_with_mnemonic("_Save");
     saveas = gtk_menu_item_new_with_mnemonic("Save _as...");
@@ -348,7 +468,7 @@ void setup_menubar(void) {
     gtk_menu_shell_append(GTK_MENU_SHELL(filemenu), save);
     gtk_menu_shell_append(GTK_MENU_SHELL(filemenu), saveas);
     gtk_menu_shell_append(GTK_MENU_SHELL(filemenu),
-                            gtk_separator_menu_item_new());
+                          gtk_separator_menu_item_new());
     gtk_menu_shell_append(GTK_MENU_SHELL(filemenu), quit);
 
     // Adaum meniul file in menubar
@@ -360,7 +480,7 @@ void setup_menubar(void) {
     // Keyboard shortcuts
 
     // New = CTRL + N
-    gtk_widget_add_accelerator(new,  "activate", accel, GDK_n,
+    gtk_widget_add_accelerator(new, "activate", accel, GDK_n,
                                GDK_CONTROL_MASK,
                                GTK_ACCEL_VISIBLE);
 
@@ -387,20 +507,21 @@ void setup_menubar(void) {
     // Signal handlers
     // Asculta pentru click pe iteme
     g_signal_connect(new, "activate",
-                             (GCallback) gtk_notepad_new, NULL);
+                     (GCallback)gtk_notepad_new, NULL);
     g_signal_connect(open, "activate",
-                             (GCallback) gtk_notepad_open, NULL);
+                     (GCallback)gtk_notepad_open, NULL);
     g_signal_connect(save, "activate",
-                             (GCallback) gtk_notepad_save, NULL);
+                     (GCallback)gtk_notepad_save, NULL);
     g_signal_connect(saveas, "activate",
-                             (GCallback) gtk_notepad_saveas, NULL);
+                     (GCallback)gtk_notepad_saveas, NULL);
 
     g_signal_connect(quit, "activate",
-                             (GCallback) gtk_main_quit, NULL);
+                     (GCallback)gtk_main_quit, NULL);
 }
 
 // Apelata cand se modifica textul
-void gtk_notepad_text_changed(void) {
+void gtk_notepad_text_changed(void)
+{
     modified = TRUE;
     // gtk_statusbar_update_lncol();
 }
@@ -408,7 +529,8 @@ void gtk_notepad_text_changed(void) {
 // Functie pentru toggle wrapping
 // Wrapping se refera la inceperea unui nou rand
 // cand se ajunge la capatul ferestrei
-void gtk_text_view_toggle_wrapping(void) {
+void gtk_text_view_toggle_wrapping(void)
+{
     GtkWrapMode mode;
     if (wrapping)
         mode = GTK_WRAP_NONE;
@@ -457,8 +579,11 @@ void setup_textarea(void) {
     gtk_text_view_toggle_wrapping();
 }
 
+int main(int argc, char *argv[])
+{
+    // Searchbar
+    SearchBar sbar;
 
-int main(int argc, char* argv[]) {
     // Numele programului
     PROGNAME = argv[0];
 
@@ -467,12 +592,14 @@ int main(int argc, char* argv[]) {
     loaded_fn[0] = '\0';
 
     // Daca a fost dat un argument, atunci incarca fisierul
-    if (argc == 2) {
+    if (argc == 2)
+    {
         // Deschide fisierul
         FILE *temp = fopen(argv[1], "rb");
 
         // Daca nu s-a putut deschide, afiseaza eroarea
-        if (!temp) {
+        if (!temp)
+        {
             fprintf(stderr, "%s: failed to open file: %s\n",
                     PROGNAME,
                     strerror(errno));
@@ -489,7 +616,8 @@ int main(int argc, char* argv[]) {
         loaded_fn = malloc(strlen(argv[1]));
         strcpy(loaded_fn, argv[1]);
     }
-    else if (argc > 2) {
+    else if (argc > 2)
+    {
         return EXIT_FAILURE;
     }
 
@@ -520,7 +648,9 @@ int main(int argc, char* argv[]) {
     gtk_window_set_icon(gwindow, create_pixbuf("./icon.png"));
 
     vbox = gtk_vbox_new(FALSE, 0);
+    hbox = gtk_hbox_new(FALSE, 0);
     gtk_container_add(GTK_CONTAINER(window), vbox);
+    gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
 
     // Folosit pentru keyboard shortcuts
     accel = gtk_accel_group_new();
@@ -532,15 +662,69 @@ int main(int argc, char* argv[]) {
     // Initializare textarea
     setup_textarea();
 
+
+    // SEARCHBAR
+
+    // Initializare meniu de optiuni
+    GtkWidget *optionsMenu = gtk_menu_new();
+    GtkWidget *optionsMi = gtk_menu_item_new_with_mnemonic("_Options");
+
+    // Adauga optiunea de find
+    GtkWidget *findMi = gtk_menu_item_new_with_label("Find");
+
+    // Linker pentru find
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(optionsMi), optionsMenu);
+    gtk_menu_shell_append(GTK_MENU_SHELL(optionsMenu), findMi);
+
+    // Keyboard shortcut pentru find
+    gtk_widget_add_accelerator(findMi, "activate", accel,
+                               GDK_f, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+
+    // Atasare optionsMenu la menubar
+    gtk_menu_shell_append(GTK_MENU_SHELL(menubar), optionsMi);
+
+    // Setup search bar
+    sbar.text_view = textarea;
+    sbar.search_entry = gtk_entry_new();
+    gtk_box_pack_start(GTK_BOX(hbox), sbar.search_entry, TRUE, TRUE, 0);
+
+    // Listener pentru butonul de search
+    sbar.sbutton = gtk_button_new_with_label("Search");
+    gtk_box_pack_start(GTK_BOX(hbox), sbar.sbutton, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(sbar.sbutton), "clicked",
+                     G_CALLBACK(search_button_clicked), &sbar);
+
+    // Listener pentru butonul de next
+    sbar.nbutton = gtk_button_new_with_label("Next");
+    gtk_box_pack_start(GTK_BOX(hbox), sbar.nbutton, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(sbar.nbutton), "clicked",
+                     G_CALLBACK(next_button_clicked), &sbar);
+
+    // Listener pentru butonul de close
+    sbar.qbutton = gtk_button_new_with_label("Close");
+    gtk_box_pack_start(GTK_BOX(hbox), sbar.qbutton, FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(sbar.qbutton), "clicked",
+                     G_CALLBACK(close_button_clicked), &sbar);
+
+    // Listener pentru meniul de find
+    g_signal_connect(G_OBJECT(findMi), "activate",
+                     G_CALLBACK(find_menu_selected), &sbar);
+    
     if (argc == 2)
         gtk_notepad_open_file(loaded_fn);
 
     // Signal handler pentru inchiderea ferestrei
     g_signal_connect(window, "destroy",
-                     (GCallback) gtk_main_quit, NULL);
+                     (GCallback)gtk_main_quit, NULL);
 
     // Afisam toate widget-urile din fereastra
     gtk_widget_show_all(window);
+
+    // Ascunde searchbar-ul la inceput
+    gtk_widget_hide(sbar.search_entry);
+    gtk_widget_hide(sbar.sbutton);
+    gtk_widget_hide(sbar.nbutton);
+    gtk_widget_hide(sbar.qbutton);
 
     // Incepem bucla principala de evenimente
     gtk_main();

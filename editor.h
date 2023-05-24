@@ -9,7 +9,7 @@ char *loaded_fn = NULL;
 int errno;
 
 // Main window
-GtkWidget *window, *vbox;
+GtkWidget *window, *vbox, *hbox;
 GtkWindow *gwindow;
 GtkAccelGroup *accel = NULL;
 
