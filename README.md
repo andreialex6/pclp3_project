@@ -1,4 +1,5 @@
 In cadrul proiectului, ne propunem sa realizam un editor 
+
 de text in limbajul C, cu ajutorul bibliotecii GTK (GIMP Toolkit).
 Componența echipei va fi formata dintr-un programator 
 care va dezvolta interfata grafica cu GTK, iar alt programator va 
@@ -27,7 +28,7 @@ Pentru a rula programul, rulati comanda:
 ./editor
 ```
 
-Alternativ, pentru a deschide un fisier, puteti sa il specificati a argument in linia de comanda:
+Alternativ, pentru a deschide un fisier, puteti sa il specificati ca argument in linia de comanda:
 
 ```
 ./editor <nume_fisier>
