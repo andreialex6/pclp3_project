@@ -14,6 +14,7 @@ si stergerea de texte, cautarea si inlocuirea
 
 -managementul evenimentelor: citirea si interpretarea 
 evenimentelor de la mouse si tastatura.
+
 In final, ne propunem sa dezvoltam un editor de text usor 
 de folosit, care sa ofere functionalitati de baza pentru editarea 
 de fisiere text.
