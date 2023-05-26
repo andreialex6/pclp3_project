@@ -1,5 +1,4 @@
-In cadrul proiectului, ne propunem sa realizam un editor 
-
+In cadrul proiectului, ne propunem sa realizam un editor
 de text in limbajul C, cu ajutorul bibliotecii GTK (GIMP Toolkit).
 Componența echipei va fi formata dintr-un programator 
 care va dezvolta interfata grafica cu GTK, iar alt programator va 
