@@ -380,6 +380,36 @@ char gtk_notepad_save_file(const char *filename)
     return 1;
 }
 
+// Functie pentru decuparea textului
+void gtk_notepad_cut(void) {
+    gtk_text_buffer_cut_clipboard(buffer, clipboard, TRUE);
+}
+
+// Functie pentru copierea textului
+void gtk_notepad_copy(void) {
+    gtk_text_buffer_copy_clipboard(buffer, clipboard);
+}
+
+// Functie pentru lipirea textului
+void gtk_notepad_paste(void) {
+    gtk_text_buffer_paste_clipboard(buffer, clipboard, NULL, TRUE);
+}
+
+// Functie pentru stergerea textului
+void gtk_notepad_delete(void) {
+    gtk_text_buffer_delete_selection(buffer, TRUE, TRUE);
+}
+
+// Functie pentru selectarea intregului text
+void gtk_notepad_select_all(void) {
+    GtkTextIter start, end;
+    gtk_text_buffer_get_start_iter(buffer, &start);
+    gtk_text_buffer_get_end_iter(buffer, &end);
+
+    gtk_text_buffer_select_range(buffer, &start, &end);
+}
+
+
 // Salveaza fisierul curent
 void gtk_notepad_save(void)
 {
@@ -461,6 +491,14 @@ void setup_menubar(void)
     saveas = gtk_menu_item_new_with_mnemonic("Save _as...");
     quit = gtk_menu_item_new_with_mnemonic("_Quit");
 
+    editmenu = gtk_menu_new();
+    edit = gtk_menu_item_new_with_mnemonic("_Edit");
+    cut  = gtk_menu_item_new_with_mnemonic("Cu_t");
+    copy = gtk_menu_item_new_with_mnemonic("_Copy");
+    paste = gtk_menu_item_new_with_mnemonic("_Paste");
+    delete = gtk_menu_item_new_with_mnemonic("_Delete");
+    selectall = gtk_menu_item_new_with_mnemonic("_Select All");
+
     // Adaugam itemele in meniul file
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(file), filemenu);
     gtk_menu_shell_append(GTK_MENU_SHELL(filemenu), new);
@@ -471,8 +509,21 @@ void setup_menubar(void)
                           gtk_separator_menu_item_new());
     gtk_menu_shell_append(GTK_MENU_SHELL(filemenu), quit);
 
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(edit), editmenu);
+    gtk_menu_shell_append(GTK_MENU_SHELL(editmenu), cut);
+    gtk_menu_shell_append(GTK_MENU_SHELL(editmenu), copy);
+    gtk_menu_shell_append(GTK_MENU_SHELL(editmenu), paste);
+    gtk_menu_shell_append(GTK_MENU_SHELL(editmenu), delete);
+    gtk_menu_shell_append(GTK_MENU_SHELL(editmenu),
+                            gtk_separator_menu_item_new());
+    gtk_menu_shell_append(GTK_MENU_SHELL(editmenu), selectall);
+    
+
     // Adaum meniul file in menubar
     gtk_menu_shell_append(GTK_MENU_SHELL(menubar), file);
+
+    // Adaugam meniul edit in menubar
+    gtk_menu_shell_append(GTK_MENU_SHELL(menubar), edit);
 
     // Adaugam menubar in topbar-ul ferestrei
     gtk_box_pack_start(GTK_BOX(vbox), menubar, FALSE, FALSE, 3);
@@ -504,8 +555,37 @@ void setup_menubar(void)
                                GDK_CONTROL_MASK,
                                GTK_ACCEL_VISIBLE);
 
+
+    // Edit menu
+
+    // Cut = CTRL + X
+    gtk_widget_add_accelerator(cut, "activate", accel, GDK_x,
+                               GDK_CONTROL_MASK,
+                               GTK_ACCEL_VISIBLE);
+    
+    // Copy = CTRL + C
+    gtk_widget_add_accelerator(copy, "activate", accel, GDK_c,
+                               GDK_CONTROL_MASK,
+                               GTK_ACCEL_VISIBLE);
+    
+    // Paste = CTRL + V
+    gtk_widget_add_accelerator(paste, "activate", accel, GDK_v,
+                               GDK_CONTROL_MASK,
+                               GTK_ACCEL_VISIBLE);
+    
+    // Delete = DEL
+    gtk_widget_add_accelerator(delete, "activate", accel, GDK_KEY_Delete,
+                               0,
+                               GTK_ACCEL_VISIBLE);
+
+    // Select all = CTRL + A
+    gtk_widget_add_accelerator(selectall, "activate", accel, GDK_a,
+                               GDK_CONTROL_MASK,
+                               GTK_ACCEL_VISIBLE);
+    
     // Signal handlers
     // Asculta pentru click pe iteme
+    // File menu
     g_signal_connect(new, "activate",
                      (GCallback)gtk_notepad_new, NULL);
     g_signal_connect(open, "activate",
@@ -517,6 +597,24 @@ void setup_menubar(void)
 
     g_signal_connect(quit, "activate",
                      (GCallback)gtk_main_quit, NULL);
+    // Edit menu
+    g_signal_connect(cut, "activate",
+                             (GCallback)
+                             gtk_notepad_cut, NULL);
+    g_signal_connect(copy, "activate",
+                             (GCallback)
+                             gtk_notepad_copy, NULL);
+    g_signal_connect(paste, "activate",
+                             (GCallback)
+                             gtk_notepad_paste, NULL);
+    g_signal_connect(delete, "activate",
+                             (GCallback)
+                             gtk_notepad_delete, NULL);
+
+    g_signal_connect(selectall, "activate",
+                             (GCallback)
+                             gtk_notepad_select_all, NULL);
+    
 }
 
 // Apelata cand se modifica textul

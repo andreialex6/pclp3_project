@@ -23,6 +23,11 @@ GtkWidget *menubar, *sep;
 GtkWidget *filemenu, *file;
 GtkWidget *new, *open, *save, *saveas, *quit;
 
+// Edit menu
+GtkWidget *editmenu, *edit;
+GtkWidget *cut, *copy, *paste, *delete;
+GtkWidget *selectall;
+
 // GtkTextView
 GtkWidget *textarea;
 GtkTextBuffer *buffer;
